@@ -8,8 +8,9 @@ Cible : sorties piste moto, ~6 enregistrements de 20 min par jour. Le fichier de
 
 - Windows 10 / 11
 - GPU NVIDIA compatible NVENC HEVC (RTX série 20+, GTX 16+, etc.)
-- Python 3.10+ — stdlib uniquement, aucun `pip install`
-- FFmpeg + ffprobe dans le PATH, compilés avec `hevc_nvenc`
+- Python 3.10+ — `archive.py` n'utilise que la stdlib ; le paquet `trackday`
+  demande `openpyxl` (export xlsx du chrono) : `pip install openpyxl`
+- FFmpeg + ffprobe dans le PATH, compilés avec `hevc_nvenc` et `libass`
 
 Installation express :
 
@@ -26,20 +27,34 @@ ffmpeg -hide_banner -encoders | Select-String hevc_nvenc
 
 ## Utilisation
 
-**Mode par défaut** — déposer les `.MP4` (sous-dossiers autorisés) dans `dump/`, puis au choix :
+Déposer les rushs `.MP4` dans `dump/` et les fichiers du chrono 3DMS dans
+`dump/GPS/`, puis **double-cliquer sur `roulage.cmd`** — c'est le seul point
+d'entrée. Un menu propose :
 
-- double-clic sur `archive.cmd`
-- `python archive.py`
+| | Action | Sortie |
+|---|---|---|
+| 1 | Analyse chrono seule | `output/GPS/AAAA-MM-JJ.xlsx` |
+| 2 | Aperçu vidéo, session la plus courte (960 px) | `output/AAAA-MM-JJ - session N.mp4` |
+| 3 | Rendu final, toutes les sessions, natif HEVC NVENC | `output/AAAA-MM-JJ - session N.mp4` |
+| 4 | Archivage brut, sans incrustation | `output/recording_XXXX.mp4` |
 
-Les archives sortent dans `output/`, nommées `recording_XXXX.mp4` (l'index à 4 chiffres est celui du nom GoPro `GX01XXXX.MP4`).
+Les sessions sont numérotées dans l'ordre chronologique de la journée. Les
+fichiers intermédiaires (listes de concat, sous-titres ASS, cache de télémétrie
+GoPro) sont isolés dans `output/travail/` et peuvent être supprimés à tout
+moment — ils sont régénérés au besoin.
 
-**Mode override** — passer des dossiers explicites :
+En ligne de commande, les mêmes actions sont des sous-commandes et acceptent
+toutes les options des outils sous-jacents :
 
 ```powershell
-python archive.py <dossier_input> [dossier_output]
+roulage.cmd chrono --secteurs 4
+roulage.cmd apercu --session 15h53 --tour 2
+roulage.cmd rendu  --toutes
+roulage.cmd brut   <dossier_input> [dossier_output]
 ```
 
-Le wrapper `.cmd` accepte aussi un dossier en glisser-déposer.
+L'archivage brut nomme ses sorties `recording_XXXX.mp4` (l'index à 4 chiffres est
+celui du nom GoPro `GX01XXXX.MP4`).
 
 ## Comment ça marche
 
@@ -53,7 +68,7 @@ Le groupement se fait **sur le nom de fichier**, pas sur le timecode : la GoPro 
 
 ## Configuration
 
-Constantes en tête d'`archive.py` :
+Constantes en tête de `trackday/archive.py` :
 
 | Variable  | Défaut     | Rôle                                                        |
 |-----------|------------|-------------------------------------------------------------|
@@ -97,7 +112,47 @@ La barre de progression est redessinée en place ; en mode non-TTY (sortie redir
 | `1`  | Au moins un enregistrement a échoué              |
 | `2`  | Problème de setup (outil manquant, dossier KO)   |
 
+## Organisation
+
+```
+roulage.cmd        <- le seul script à cliquer
+README.md
+trackday/          <- tout le code
+dump/              <- rushs GoPro (.MP4)
+dump/GPS/          <- fichiers du chrono 3DMS (.ra1)
+output/            <- vidéos finales et archives brutes
+output/GPS/        <- classeurs xlsx
+output/travail/    <- fichiers intermédiaires, supprimables
+```
+
+| Module | Rôle |
+|---|---|
+| `__main__` | menu et aiguillage des sous-commandes |
+| `archive` | archivage brut des rushs, sans incrustation |
+| `ra1` | lecture des `.ra1` du 3DMS (format rétro-conçu), tours, secteurs, export xlsx |
+| `gpmf` | lecture de la télémétrie GPMF des MP4 GoPro — sert **uniquement** au calage |
+| `sync` | appariement session ↔ rush et recalage temporel |
+| `telemetry` | grandeurs dérivées : écart au tour de référence, G latéral, tracé du circuit |
+| `overlay` | génération du HUD en sous-titres ASS |
+| `video` | découverte des rushs, concat, profils d'encodage |
+| `pipeline` | orchestration de bout en bout |
+
+```powershell
+ra1.cmd                       # analyse des .ra1, un classeur xlsx par journée
+poc.cmd                       # aperçu rapide 960px de la session la plus courte
+poc.cmd --profil archive      # résolution native, HEVC NVENC CQ 24
+poc.cmd --session 15h53 --tour 2
+```
+
+Le chrono est la **source de vérité** des valeurs affichées ; le GPS de la GoPro
+ne sert qu'à situer un instant chrono sur la timeline vidéo. Le calage se fait
+en trois étapes (UTC satellite → corrélation des profils de vitesse → écart de
+position), ce qui donne ~0,02 s de stabilité entre tours.
+
+Un dump ne doit contenir **qu'un seul circuit et une seule journée** : le pipeline
+le vérifie et refuse sinon. Le décalage horaire des noms de `.ra1` est déduit des
+données, pas figé (`--utc` pour forcer).
+
 ## Roadmap
 
-- Trim automatique des temps morts (retour stands, tours lents) via la télémétrie GPMF avant encodage.
 - Suite pipeline : montage Resolve → rendu final NVENC → upload YouTube non-répertorié via API v3.

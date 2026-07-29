@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-log = logging.getLogger("trackday.video")
+log = logging.getLogger("roulage.video")
 
 CLIP_RE = re.compile(r"^G[XH](\d{2})(\d{4})\.MP4$", re.IGNORECASE)
 

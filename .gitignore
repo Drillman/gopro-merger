@@ -3,11 +3,15 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Rushs et archives : contenu ignore, dossiers preserves via .gitkeep
+# Rushs (.MP4) et chrono (.ra1) en entree, livrables en sortie :
+# contenu ignore, dossiers preserves via .gitkeep
 dump/*
 !dump/.gitkeep
 output/*
 !output/.gitkeep
+
+# Fichiers temporaires : recrees a la demande, jamais suivis
+work/
 
 # Fichiers concat temporaires (cleanup normalement automatique, defense en profondeur)
 .concat_*.txt

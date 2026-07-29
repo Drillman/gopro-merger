@@ -2,7 +2,7 @@
 
 Les videos finales sont deposees a la racine du dossier de sortie, nommees
 « AAAA-MM-JJ - session N.mp4 ». Les fichiers intermediaires (liste de concat,
-sous-titres ASS, cache de telemetrie) vivent dans un sous-dossier `travail`.
+sous-titres ASS, cache de telemetrie) vivent dans `work/`, hors de output/.
 """
 
 import argparse
@@ -12,12 +12,11 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from . import DUMP, GPS, OUTPUT, ra1, overlay, sync, video
+from . import DUMP, OUTPUT, WORK, ra1, overlay, sync, video
 
-log = logging.getLogger("trackday")
+log = logging.getLogger("roulage")
 
 PAD = 3.0          # secondes conservees de part et d'autre d'un extrait --tour
-WORKDIR = "travail"  # sous-dossier des fichiers intermediaires (.ass, .concat, gpmd)
 
 
 def session_numbers(sessions):
@@ -99,8 +98,9 @@ def report(result: sync.SyncResult):
                         num, ra1.fmt_lap(lap), state, r.recording.name)
 
 
-def build(result: sync.SyncResult, outdir: Path, numbers, profile="preview",
-          lap=None, width=None, dry_run=False, keep_pits=False, blur=True):
+def build(result: sync.SyncResult, outdir: Path, workdir: Path, numbers,
+          profile="preview", lap=None, width=None, dry_run=False,
+          keep_pits=False, blur=True):
     """Concatene, incruste et encode la fenetre demandee."""
     r = result
     total = r.recording.duration
@@ -138,8 +138,8 @@ def build(result: sync.SyncResult, outdir: Path, numbers, profile="preview",
                     wanted - total)
 
     # les videos finales vont a la racine de `outdir` ; tout l'intermediaire
-    # (liste de concat, sous-titres ASS) part dans un sous-dossier de travail
-    work = outdir / WORKDIR
+    # (liste de concat, sous-titres ASS) part dans work/, hors du dossier suivi
+    work = workdir
     work.mkdir(parents=True, exist_ok=True)
     dest = outdir / f"{output_name(r.session, numbers, lap)}.mp4"
     stem = work_name(r.session, numbers, lap)
@@ -180,8 +180,11 @@ def main(argv=None):
     setup_logging()
     ap = argparse.ArgumentParser(
         description="Concatene une session et y incruste les donnees du chrono 3DMS.")
-    ap.add_argument("--gps", type=Path, default=GPS, help="dossier des .ra1")
+    ap.add_argument("--gps", type=Path, default=DUMP,
+                    help="dossier des .ra1 (defaut : dump/, a cote des rushs)")
     ap.add_argument("--rushs", type=Path, default=DUMP, help="dossier des .MP4 GoPro")
+    ap.add_argument("--work", type=Path, default=WORK,
+                    help="dossier des fichiers temporaires (defaut : work/)")
     ap.add_argument("--out", type=Path, default=OUTPUT,
                     help="dossier des videos finales (defaut : output/)")
     ap.add_argument("--session", help="nom (ou fragment) de la session ; "
@@ -219,7 +222,7 @@ def main(argv=None):
 
     try:
         circuit = check_single_circuit(sessions)
-        workdir = a.out / WORKDIR / "gpmd"
+        workdir = a.work / "gpmd"
         pairs, _ = sync.match(sessions, recordings, workdir, a.utc)
     except sync.SyncError as e:
         log.error("%s", e)
@@ -264,8 +267,8 @@ def main(argv=None):
     rc = 0
     for r in chosen:
         width = a.largeur if a.largeur is not None else video.PROFILE_SCALE.get(a.profil)
-        if build(r, a.out, numbers, a.profil, a.tour, width, a.dry_run,
-                 a.tours_stands, not a.sans_flou) is None:
+        if build(r, a.out, a.work, numbers, a.profil, a.tour, width,
+                 a.dry_run, a.tours_stands, not a.sans_flou) is None:
             rc = 1
     return rc
 

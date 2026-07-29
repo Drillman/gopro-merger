@@ -18,7 +18,7 @@ Deux ecarts assumes par rapport au design :
   - les polices du design (JetBrains Mono, Barlow Semi Condensed) ne sont pas
     installees. On utilise Consolas et Bahnschrift, substituts de meme nature
     (mono a chasse tabulaire / lineale condensee). Deposer les .ttf d'origine
-    dans `trackday/fonts` et renseigner MONO/SANS suffit a retrouver le design
+    dans `scripts/fonts` et renseigner MONO/SANS suffit a retrouver le design
     exact : ffmpeg les charge via l'option `fontsdir`.
 
 Toutes les valeurs affichees viennent du chrono 3DMS ; le calage GoPro ne sert

@@ -8,7 +8,7 @@ Cible : sorties piste moto, ~6 enregistrements de 20 min par jour. Le fichier de
 
 - Windows 10 / 11
 - GPU NVIDIA compatible NVENC HEVC (RTX série 20+, GTX 16+, etc.)
-- Python 3.10+ — `archive.py` n'utilise que la stdlib ; le paquet `trackday`
+- Python 3.10+ — `archive.py` n'utilise que la stdlib ; le paquet `scripts`
   demande `openpyxl` (export xlsx du chrono) : `pip install openpyxl`
 - FFmpeg + ffprobe dans le PATH, compilés avec `hevc_nvenc` et `libass`
 
@@ -27,21 +27,22 @@ ffmpeg -hide_banner -encoders | Select-String hevc_nvenc
 
 ## Utilisation
 
-Déposer les rushs `.MP4` dans `dump/` et les fichiers du chrono 3DMS dans
-`dump/GPS/`, puis **double-cliquer sur `roulage.cmd`** — c'est le seul point
+Déposer les rushs `.MP4` **et** les fichiers du chrono 3DMS `.ra1` dans
+`dump/`, côte à côte, puis **double-cliquer sur `roulage.cmd`** — c'est le seul point
 d'entrée. Un menu propose :
 
 | | Action | Sortie |
 |---|---|---|
-| 1 | Analyse chrono seule | `output/GPS/AAAA-MM-JJ.xlsx` |
+| 1 | Analyse chrono seule | `output/AAAA-MM-JJ.xlsx` |
 | 2 | Aperçu vidéo, session la plus courte (960 px) | `output/AAAA-MM-JJ - session N.mp4` |
 | 3 | Rendu final, toutes les sessions, natif HEVC NVENC | `output/AAAA-MM-JJ - session N.mp4` |
 | 4 | Archivage brut, sans incrustation | `output/recording_XXXX.mp4` |
 
-Les sessions sont numérotées dans l'ordre chronologique de la journée. Les
-fichiers intermédiaires (listes de concat, sous-titres ASS, cache de télémétrie
-GoPro) sont isolés dans `output/travail/` et peuvent être supprimés à tout
-moment — ils sont régénérés au besoin.
+Les sessions sont numérotées dans l'ordre chronologique de la journée.
+
+`output/` ne contient que des livrables. Les fichiers intermédiaires (listes de
+concat, sous-titres ASS, cache de télémétrie GoPro) vivent dans `work/`, à la
+racine du projet — supprimables à tout moment, ils sont régénérés au besoin.
 
 En ligne de commande, les mêmes actions sont des sous-commandes et acceptent
 toutes les options des outils sous-jacents :
@@ -68,7 +69,7 @@ Le groupement se fait **sur le nom de fichier**, pas sur le timecode : la GoPro 
 
 ## Configuration
 
-Constantes en tête de `trackday/archive.py` :
+Constantes en tête de `scripts/archive.py` :
 
 | Variable  | Défaut     | Rôle                                                        |
 |-----------|------------|-------------------------------------------------------------|
@@ -117,12 +118,10 @@ La barre de progression est redessinée en place ; en mode non-TTY (sortie redir
 ```
 roulage.cmd        <- le seul script à cliquer
 README.md
-trackday/          <- tout le code
-dump/              <- rushs GoPro (.MP4)
-dump/GPS/          <- fichiers du chrono 3DMS (.ra1)
-output/            <- vidéos finales et archives brutes
-output/GPS/        <- classeurs xlsx
-output/travail/    <- fichiers intermédiaires, supprimables
+scripts/           <- tout le code
+dump/              <- entrées : rushs GoPro (.MP4) et chrono 3DMS (.ra1)
+output/            <- livrables : vidéos traitées et classeurs xlsx
+work/              <- fichiers intermédiaires, non suivis par git
 ```
 
 | Module | Rôle |

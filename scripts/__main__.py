@@ -4,16 +4,16 @@ Sans argument : menu interactif, pour un lancement au double-clic depuis
 `roulage.cmd`. Avec arguments : sous-commande directe, les options restantes
 etant passees telles quelles a l'outil concerne.
 
-    python -m trackday chrono  [--secteurs N] [--points]
-    python -m trackday apercu  [--session 15h53] [--tour 2] ...
-    python -m trackday rendu   [--session 15h53] ...
-    python -m trackday brut    [dossier_entree] [dossier_sortie]
+    python -m scripts chrono  [--secteurs N] [--points]
+    python -m scripts apercu  [--session 15h53] [--tour 2] ...
+    python -m scripts rendu   [--session 15h53] ...
+    python -m scripts brut    [dossier_entree] [dossier_sortie]
 """
 
 import logging
 import sys
 
-from . import DUMP, GPS, OUTPUT
+from . import DUMP, OUTPUT
 
 COMMANDS = {
     "chrono": "analyse des .ra1 seuls, un classeur xlsx par journee",
@@ -55,7 +55,7 @@ MENU = [
 
 
 def inventory():
-    ra1_files = sorted(GPS.glob("*.ra1")) if GPS.is_dir() else []
+    ra1_files = sorted(DUMP.glob("*.ra1")) if DUMP.is_dir() else []
     rushs = sorted(DUMP.glob("*.MP4")) if DUMP.is_dir() else []
     return ra1_files, rushs
 
@@ -66,12 +66,12 @@ def menu():
     print("=" * 58)
     print("  Journee de roulage")
     print("=" * 58)
-    print(f"  chrono : {len(ra1_files)} session(s)      dans {GPS}")
+    print(f"  chrono : {len(ra1_files)} session(s)      dans {DUMP}")
     print(f"  rushs  : {len(rushs)} fichier(s) GoPro dans {DUMP}")
     print(f"  sortie : {OUTPUT}")
     print()
     if not ra1_files:
-        print("  ! aucun .ra1 : deposer les fichiers du chrono dans dump/GPS")
+        print("  ! aucun .ra1 : deposer les fichiers du chrono dans dump/")
     if not rushs:
         print("  ! aucun .MP4 : deposer les rushs GoPro dans dump/")
     print()

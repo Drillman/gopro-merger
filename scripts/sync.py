@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 
 from . import ra1, gpmf, video
 
-log = logging.getLogger("trackday.sync")
+log = logging.getLogger("roulage.sync")
 
 HZ = 10.0
 MIN_SPEED = 40.0     # km/h : on ne recale que sur les portions roulees

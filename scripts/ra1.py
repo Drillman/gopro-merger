@@ -33,9 +33,9 @@ sont donc redefinis ici a distance egale le long du meilleur tour (voir
 --secteurs), ce qui rend le "temps ideal" comparable d'une session a l'autre
 mais pas identique au "theorique" affiche par le 3DMS.
 
-Usage : python ra1.py                      -> analyse dump/GPS, classeur par jour
-        python ra1.py "dump/GPS/2026-07-26 a 09h19.ra1"
-        python ra1.py dump/GPS --out output/GPS --secteurs 3
+Usage : python -m scripts chrono           -> analyse dump/, classeur par jour
+        python -m scripts chrono "dump/2026-07-26 a 09h19.ra1"
+        python -m scripts chrono --secteurs 4
 """
 
 import argparse
@@ -48,7 +48,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent.parent
+from . import DUMP, OUTPUT
+
 REC_SIZE = 28
 REC_FMT = "<i6f"
 TAIL_MAGIC = b"\xab\xcd\xef"
@@ -483,16 +484,19 @@ def dump(session, n_sectors=3):
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="chrono",
                                  description="Lecteur des fichiers .ra1 du chrono GPS 3DMS.")
-    ap.add_argument("target", nargs="?", default=BASE / "dump" / "GPS", type=Path,
-                    help="fichier .ra1 ou dossier a analyser (defaut : dump/GPS)")
-    ap.add_argument("--out", nargs="?", const=BASE / "output" / "GPS", default=None, type=Path,
-                    metavar="DOSSIER",
-                    help="ecrit un classeur .xlsx par journee (defaut : output/GPS)")
+    ap.add_argument("target", nargs="?", default=DUMP, type=Path,
+                    help="fichier .ra1 ou dossier a analyser (defaut : dump/)")
+    ap.add_argument("--out", default=OUTPUT, type=Path, metavar="DOSSIER",
+                    help="ou ecrire les classeurs .xlsx (defaut : output/)")
+    ap.add_argument("--sans-xlsx", action="store_true",
+                    help="analyse en console seulement, aucun fichier ecrit")
     ap.add_argument("--secteurs", type=int, default=3, metavar="N",
                     help="nombre de secteurs, a distance egale (defaut : 3)")
     ap.add_argument("--points", action="store_true",
                     help="exporte aussi le CSV brut 10 Hz de chaque session")
     a = ap.parse_args(argv)
+    if a.sans_xlsx:
+        a.out = None
 
     if a.secteurs < 1:
         ap.error("--secteurs doit valoir au moins 1")

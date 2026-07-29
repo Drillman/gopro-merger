@@ -10,20 +10,14 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-BASE         = Path(__file__).resolve().parent
-INPUT        = Path(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1] else BASE / "dump"
-OUTPUT       = Path(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] else BASE / "output"
+from . import DUMP, OUTPUT as OUTPUT_DIR
+
 CQ           = 24
 BAR_LEN      = 26
 TARGET_SPEED = 1.4  # ratio realtime attendu, sert a l'estimation ETA globale
 
 CLIP_RE = re.compile(r"^G[XH](\d{2})(\d{4})\.MP4$", re.IGNORECASE)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)-7s %(message)s",
-    datefmt="%H:%M:%S",
-)
 log = logging.getLogger("archive")
 
 
@@ -315,14 +309,18 @@ def encode_recording(index, clips, duration, outdir, n, total, source_done, sour
                 log.warning("%s : nettoyage %s : %s", tag, lst.name, ue)
 
 
-def main():
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
+    INPUT = Path(argv[0]) if argv and argv[0] else DUMP
+    OUTPUT = Path(argv[1]) if len(argv) > 1 and argv[1] else OUTPUT_DIR
+
     log.info("demarrage : INPUT=%s OUTPUT=%s CQ=%d ratio_estime=%.1fx",
              INPUT, OUTPUT, CQ, TARGET_SPEED)
     check_tools()
 
     if not INPUT.is_dir():
         log.error("dossier d'entree introuvable : %s", INPUT)
-        sys.exit(2)
+        return 2
 
     log.info("scan de %s ...", INPUT)
     groups = defaultdict(dict)
@@ -343,7 +341,7 @@ def main():
 
     if not groups:
         log.warning("aucun .MP4 GoPro trouve dans %s", INPUT)
-        return
+        return 0
 
     total_chapters = sum(len(v) for v in groups.values())
     log.info("probe des durees (%d fichier(s)) ...", total_chapters)
@@ -395,9 +393,8 @@ def main():
              "duree totale %s pour %s de rush encode%s",
              ok, already, skipped, fail,
              human_time(t_total), human_time(source_done), avg_txt)
-    if fail:
-        sys.exit(1)
+    return 1 if fail else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
